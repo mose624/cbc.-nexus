@@ -27,9 +27,9 @@
         "description": "Professional CBE teaching and learning resources for Grades 1-12 in Kenya.",
         "url": "https://example.com/",
         "areaServed": "Kenya",
-        "telephone": "+254798462815",
+        "telephone": "+254xxx",
         "sameAs": [
-          "https://wa.me/254798462815"
+          "https://wa.me/254xxx"
         ],
         "hasOfferCatalog": {
           "@type": "OfferCatalog",
@@ -75,15 +75,14 @@
           </span>
         </a>
         <div class="nav-actions">
-          <a class="mpesa-header-button" href="#payments" id="headerMpesaButton">M-Pesa 0798462815</a>
-          <a class="whatsapp-button" href="https://wa.me/254798462815" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="mpesa-header-button" href="#payments" id="headerMpesaButton">M-Pesa ***</a>
+          <a class="whatsapp-button" href="https://wa.me/254xxx" target="_blank" rel="noopener">WhatsApp</a>
           <button class="cart-button" id="cartButton" type="button">Cart <span id="cartCount">0</span></button>
           <a class="danger-blink-button" href="#holidayTuition">Book Holiday Tuition</a>
           <a class="ghost-button" href="#cbcProjects">CBC Projects</a>
           <a class="ghost-button" href="#freeCbcResources">Free CBC</a>
           <a class="ghost-button" href="#aiHomework">AI Helper</a>
           <a class="ghost-button" href="#payments">Payments</a>
-          <a class="ghost-button" href="#adminLogin">Admin Login</a>
           <a class="primary-button" href="#resources">Browse Resources</a>
         </div>
       </nav>
@@ -240,7 +239,7 @@
               </label>
               <label>
                 Price
-                <input id="sellerPriceInput" type="number" min="0" value="150" required>
+                <input id="sellerPriceInput" type="number" min="0" required placeholder="Enter custom price">
               </label>
             </div>
             <div class="form-row">
@@ -287,6 +286,10 @@
                 <button class="secondary-button" type="submit">Request Withdrawal</button>
               </form>
               <p id="withdrawStatus" class="form-status" aria-live="polite"></p>
+            </div>
+            <div class="seller-storage">
+              <h3>Seller storage</h3>
+              <p id="sellerStorageInfo">Seller storage usage: 0 B of 20 GB available.</p>
             </div>
           </aside>
         </div>
@@ -489,7 +492,7 @@
             <p class="eyebrow">Find what you need fast</p>
             <h2>Competitive CBE resource centre</h2>
           </div>
-          <div class="price-pill">WhatsApp support: <strong>0798462815</strong></div>
+          <div class="price-pill">WhatsApp support: <strong>***</strong></div>
         </div>
         <div class="feature-grid">
           <article>
@@ -525,7 +528,7 @@
             <p class="eyebrow">Teaching and learning materials</p>
             <h2>Resource Library</h2>
           </div>
-          <div class="price-pill">Uniform price: <strong>KES 150</strong></div>
+        <div class="price-pill">Set custom pricing <strong>per resource</strong></div>
         </div>
 
         <div class="filters" aria-label="Resource filters">
@@ -609,7 +612,7 @@
             <p class="eyebrow">M-Pesa and WhatsApp checkout</p>
             <h2>Pay and confirm your resource order</h2>
           </div>
-          <div class="price-pill">M-Pesa payment phone: <strong>0798462815</strong></div>
+          <div class="price-pill">M-Pesa payment phone: <strong>***</strong></div>
         </div>
 
         <div class="payment-layout">
@@ -630,15 +633,15 @@
             </label>
             <div class="payment-actions">
               <button class="primary-button" type="submit">Pay with M-Pesa</button>
-              <a id="whatsappOrderButton" class="whatsapp-button" href="https://wa.me/254798462815" target="_blank" rel="noopener">Order on WhatsApp</a>
+              <a id="whatsappOrderButton" class="whatsapp-button" href="https://wa.me/254xxx" target="_blank" rel="noopener">Order on WhatsApp</a>
             </div>
             <p id="paymentStatus" class="form-status" aria-live="polite"></p>
           </form>
 
           <div class="payment-card">
             <h3>Payment contacts</h3>
-            <p><strong>M-Pesa:</strong> 0798462815</p>
-            <p><strong>WhatsApp:</strong> 0798462815</p>
+            <p><strong>M-Pesa:</strong> ***</p>
+            <p><strong>WhatsApp:</strong> ***</p>
             <p>
               The M-Pesa button is ready to call a live Daraja/STK backend at
               <code>/api/mpesa/stk-push</code> when Safaricom API credentials are added.
@@ -652,14 +655,18 @@
         </div>
       </section>
 
-      <section id="adminLogin" class="admin-login-band">
+      <section id="adminLogin" class="admin-login-band hidden-section" aria-hidden="true">
         <div class="admin-login-card">
           <div>
             <p class="eyebrow">Secure admin access</p>
             <h2>Admin Login</h2>
-            <p>Enter the admin username and password to manage CBE resources and seller approvals.</p>
+            <p>Enter the official admin email, username, and password to manage CBE resources and seller approvals. Official email: ***@gmail.com</p>
           </div>
           <form id="adminLoginForm" class="admin-login-form">
+            <label>
+              Email
+              <input id="adminEmailInput" type="email" autocomplete="email" required placeholder="***@gmail.com">
+            </label>
             <label>
               Username
               <input id="adminUsernameInput" autocomplete="username" required placeholder="Username">
@@ -740,7 +747,7 @@
             <div class="form-row">
               <label>
                 Price
-                <input id="priceInput" type="number" min="0" value="150" required>
+                <input id="priceInput" type="number" min="0" required placeholder="Enter price">
               </label>
               <label>
                 Discount Percentage
@@ -814,8 +821,8 @@
           </div>
           <div class="contact-actions" aria-label="Contact details">
             <a class="contact-link" href="mailto:cbenexus@gmail.com">cbenexus@gmail.com</a>
-            <a class="contact-link" href="tel:0798462815">0798462815</a>
-            <a class="whatsapp-button" href="https://wa.me/254798462815" target="_blank" rel="noopener">WhatsApp Support</a>
+            <a class="contact-link" href="tel:***">***</a>
+            <a class="whatsapp-button" href="https://wa.me/254xxx" target="_blank" rel="noopener">WhatsApp Support</a>
           </div>
         </div>
       </section>
@@ -855,6 +862,7 @@
         <a href="#about">About Us</a>
         <a href="#contact">Contact</a>
         <a href="#privacy">Privacy Policy</a>
+        <button class="ghost-button" id="adminAreaButton" type="button" style="padding: 0; background: none; border: none; cursor: pointer; color: inherit; text-decoration: underline; font: inherit;">Admin Area</button>
       </nav>
     </footer>
 
@@ -867,7 +875,7 @@
       <div id="cartItems" class="cart-items"></div>
       <div class="cart-footer">
         <strong id="cartTotal">KES 0</strong>
-        <a id="cartWhatsappButton" class="whatsapp-button" href="https://wa.me/254798462815" target="_blank" rel="noopener">Send WhatsApp Order</a>
+        <a id="cartWhatsappButton" class="whatsapp-button" href="https://wa.me/254xxx" target="_blank" rel="noopener">Send WhatsApp Order</a>
       </div>
     </aside>
     <script src="app.js"></script>

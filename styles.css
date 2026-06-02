@@ -551,6 +551,21 @@ textarea:focus-visible {
   margin: 0 0 8px;
 }
 
+.seller-storage {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.seller-storage h3 {
+  margin: 0 0 8px;
+}
+
+.seller-storage p {
+  color: var(--muted);
+  margin: 0;
+}
+
 .withdraw-form {
   display: grid;
   gap: 10px;

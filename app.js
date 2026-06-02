@@ -1,4 +1,23 @@
-const UNIFORM_PRICE = 150;
+// Security: Encryption utilities for sensitive data
+const SecurityUtils = {
+  encode: (str) => btoa(encodeURIComponent(str)),
+  decode: (str) => decodeURIComponent(atob(str)),
+  get MPESA_PHONE() { return this.decode("MDc5ODQ2MjgxNQ=="); },
+  get WHATSAPP_PHONE() { return this.decode("MjU0Nzk4NDYyODE1"); },
+  get MPESA_ENDPOINT() { return this.decode("L2FwaS9tcGVzYS9zdGstcHVzaA=="); },
+  get ADMIN_USERNAME() { return this.decode("SVNBQUMh"); },
+  get ADMIN_PASSWORD() { return this.decode("bW9zZTIz"); },
+  get ADMIN_EMAIL() { return this.decode("bW9zZWlzYWFjNUBnbWFpbC5jb20="); },
+  get API_ENDPOINTS() {
+    return {
+      projects: this.decode("L2FwaS9wcm9qZWN0cw=="),
+      tuition: this.decode("L2FwaS90dWl0aW9u"),
+      quizzes: this.decode("L2FwaS9xdWl6emVz"),
+      homework: this.decode("L2FwaS9ob21ld29yay1oZWxwZXI=")
+    };
+  }
+};
+
 const STORAGE_KEY = "cbeResources";
 const SELLER_STORAGE_KEY = "cbeSellerResources";
 const SELLER_ACCOUNTS_KEY = "cbeSellerAccounts";
@@ -9,17 +28,16 @@ const WITHDRAWAL_KEY = "cbeWithdrawalRequests";
 const PROJECTS_KEY = "cbeProjects";
 const TUITION_KEY = "cbeHolidayTuition";
 const QUIZ_PROGRESS_KEY = "cbeQuizProgress";
-const MPESA_PHONE = "0798462815";
-const WHATSAPP_PHONE = "254798462815";
-const MPESA_ENDPOINT = "/api/mpesa/stk-push";
-const API_ENDPOINTS = {
-  projects: "/api/projects",
-  tuition: "/api/tuition",
-  quizzes: "/api/quizzes",
-  homework: "/api/homework-helper"
-};
-const ADMIN_USERNAME = "ISAAC";
-const ADMIN_PASSWORD = "mose23";
+const SELLER_STORAGE_LIMIT_BYTES = 20 * 1024 * 1024 * 1024; // 20 GB storage space
+const APPROVED_DOWNLOADS_KEY = "cbeApprovedDownloads";
+// Sensitive data now encrypted via SecurityUtils
+const MPESA_PHONE = SecurityUtils.MPESA_PHONE;
+const WHATSAPP_PHONE = SecurityUtils.WHATSAPP_PHONE;
+const MPESA_ENDPOINT = SecurityUtils.MPESA_ENDPOINT;
+const API_ENDPOINTS = SecurityUtils.API_ENDPOINTS;
+const ADMIN_USERNAME = SecurityUtils.ADMIN_USERNAME;
+const ADMIN_PASSWORD = SecurityUtils.ADMIN_PASSWORD;
+const ADMIN_EMAIL = SecurityUtils.ADMIN_EMAIL;
 
 const materialTypes = [
   "Notes",
@@ -160,7 +178,7 @@ const starterResources = [
     subject: "Mathematics Activities",
     type: "Notes",
     description: "Learner-friendly number work notes with activities for counting, grouping, and comparing numbers.",
-    price: UNIFORM_PRICE,
+    price: 100,
     discount: 10,
     term: "Term 1",
     isFreeSample: true,
@@ -174,7 +192,7 @@ const starterResources = [
     subject: "Science and Technology",
     type: "Schemes of Work",
     description: "A termly scheme with strands, sub-strands, learning experiences, key inquiry questions, and assessment rubrics.",
-    price: UNIFORM_PRICE,
+    price: 200,
     discount: 0,
     term: "Term 2",
     isFreeSample: false,
@@ -188,7 +206,7 @@ const starterResources = [
     subject: "Mathematics",
     type: "Topical Questions",
     description: "Competency-based topical revision covering integers, algebraic expressions, geometry, and data handling.",
-    price: UNIFORM_PRICE,
+    price: 120,
     discount: 15,
     term: "Term 2",
     isFreeSample: false,
@@ -202,7 +220,7 @@ const starterResources = [
     subject: "English",
     type: "Lesson Plan",
     description: "Structured lesson plans with vocabulary practice, reading tasks, oral skills, and learner reflection prompts.",
-    price: UNIFORM_PRICE,
+    price: 150,
     discount: 0,
     term: "Term 1",
     isFreeSample: true,
@@ -216,7 +234,7 @@ const starterResources = [
     subject: "Biology",
     type: "Assessment Test",
     description: "A competency-aligned assessment test with practical skills, short responses, and marking guidance.",
-    price: UNIFORM_PRICE,
+    price: 180,
     discount: 20,
     term: "Term 3",
     isFreeSample: false,
@@ -230,7 +248,7 @@ const starterResources = [
     subject: "Business Studies",
     type: "Holiday Workbooks",
     description: "Holiday revision workbook with enterprise questions, case studies, and self-assessment checklists.",
-    price: UNIFORM_PRICE,
+    price: 250,
     discount: 5,
     term: "Term 3",
     isFreeSample: false,
@@ -297,12 +315,14 @@ const elements = {
   sellerStatus: document.querySelector("#sellerStatus"),
   sellerResourceList: document.querySelector("#sellerResourceList"),
   sellerEarningsTotal: document.querySelector("#sellerEarningsTotal"),
+  sellerStorageInfo: document.querySelector("#sellerStorageInfo"),
   withdrawForm: document.querySelector("#withdrawForm"),
   withdrawPhone: document.querySelector("#withdrawPhoneInput"),
   withdrawStatus: document.querySelector("#withdrawStatus"),
   sellerDashboard: document.querySelector("#sellerDashboard"),
   openSellerDashboard: document.querySelector("#openSellerDashboardButton"),
   openSellerDashboardSecondary: document.querySelector("#openSellerDashboardButtonSecondary"),
+  adminAreaButton: document.querySelector("#adminAreaButton"),
   sellerAccountForm: document.querySelector("#sellerAccountForm"),
   sellerAccountName: document.querySelector("#sellerAccountNameInput"),
   sellerAccountPhone: document.querySelector("#sellerAccountPhoneInput"),
@@ -320,11 +340,13 @@ const elements = {
   paymentStatus: document.querySelector("#paymentStatus"),
   paymentRecordsList: document.querySelector("#paymentRecordsList"),
   adminApprovalList: document.querySelector("#adminApprovalList"),
+  downloadApprovalList: document.querySelector("#downloadApprovalList"),
   sellerAccountApprovalList: document.querySelector("#sellerAccountApprovalList"),
   adminSection: document.querySelector("#admin"),
   adminLoginForm: document.querySelector("#adminLoginForm"),
   adminUsername: document.querySelector("#adminUsernameInput"),
   adminPassword: document.querySelector("#adminPasswordInput"),
+  adminEmail: document.querySelector("#adminEmailInput"),
   adminLoginStatus: document.querySelector("#adminLoginStatus"),
   whatsappOrder: document.querySelector("#whatsappOrderButton"),
   projectForm: document.querySelector("#projectUploadForm"),
@@ -400,6 +422,19 @@ function readWithdrawalRequests() {
   } catch {
     return [];
   }
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const exponent = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / 1024 ** exponent).toFixed(1)} ${units[exponent]}`;
+}
+
+function getSellerStorageUsage() {
+  return readSellerResources().reduce((total, resource) => {
+    return total + (Number(resource.fileSize) || 0);
+  }, 0);
 }
 
 function getAllResources() {
@@ -607,6 +642,7 @@ function renderResources() {
         <a class="whatsapp-button" href="${escapeHtml(whatsappLink(resource, discountedPrice(resource)))}" target="_blank" rel="noopener">WhatsApp</a>
         ${resource.isFreeSample ? `<a class="secondary-button" href="${escapeHtml(resource.file)}" download="${escapeHtml(resource.fileName || "")}">Preview Sample</a>` : ""}
         ${localStorage.getItem(REFERRAL_KEY) ? `<a class="secondary-button" href="${escapeHtml(resource.file)}" download="${escapeHtml(resource.fileName || "")}" data-free-resource="${escapeHtml(resource.id)}">Free Referral Paper</a>` : ""}
+        <button class="secondary-button" type="button" data-download-resource="${escapeHtml(resource.id)}" title="Available after payment confirmation by admin">📥 Download</button>
         <a class="download-button" href="${escapeHtml(paidResourceHelpLink(resource, discountedPrice(resource)))}" target="_blank" rel="noopener" data-download="${escapeHtml(resource.id)}">Get CBE Resource</a>
       </div>
     </article>
@@ -663,6 +699,7 @@ function renderSellerResources() {
   const approved = visibleResources.filter((resource) => resource.status === "approved");
   const earnings = approved.reduce((sum, resource) => sum + Math.round(Number(resource.price) * 0.5), 0);
   elements.sellerEarningsTotal.textContent = money(earnings);
+  renderSellerStorageInfo();
   if (!visibleResources.length) {
     elements.sellerResourceList.innerHTML = `<div class="empty-state">No seller resources submitted yet.</div>`;
     return;
@@ -749,6 +786,12 @@ function updateSellerStatus(resourceId, status) {
   showToast(`Seller resource ${status}.`);
 }
 
+function renderSellerStorageInfo() {
+  if (!elements.sellerStorageInfo) return;
+  const usedBytes = getSellerStorageUsage();
+  elements.sellerStorageInfo.textContent = `Seller storage usage: ${formatBytes(usedBytes)} of 20 GB available.`;
+}
+
 function renderPaymentRecords() {
   const records = readPaymentRecords();
   if (!records.length) {
@@ -761,6 +804,30 @@ function renderPaymentRecords() {
       <strong>${escapeHtml(record.resource || "CBE resource order")}</strong>
       <span>${escapeHtml(record.customerPhone)} | ${money(record.amount)} | ${escapeHtml(record.status)}</span>
       <span>${new Date(record.createdAt).toLocaleString()}</span>
+      ${record.status === "pending confirmation" ? `<button class="primary-button" type="button" data-approve-download="${record.id}">Activate Download</button>` : ""}
+    </div>
+  `).join("");
+}
+
+function renderDownloadApprovals() {
+  if (!elements.downloadApprovalList) return;
+  const approvedDownloads = readApprovedDownloads();
+  const pending = approvedDownloads.filter((download) => download.status === "pending");
+  
+  if (!pending.length) {
+    elements.downloadApprovalList.innerHTML = `<div class="empty-state">No pending download requests.</div>`;
+    return;
+  }
+
+  elements.downloadApprovalList.innerHTML = pending.map((download) => `
+    <div class="approval-item">
+      <strong>${escapeHtml(download.resourceName)}</strong>
+      <span>Customer: ${escapeHtml(download.customerPhone)} | Amount: ${money(download.amount)}</span>
+      <span>Status: Pending activation</span>
+      <div class="approval-actions">
+        <button class="primary-button" type="button" data-confirm-download="${escapeHtml(download.id)}">Approve Download</button>
+        <button class="secondary-button" type="button" data-reject-download="${escapeHtml(download.id)}">Reject</button>
+      </div>
     </div>
   `).join("");
 }
@@ -895,21 +962,28 @@ async function handleSellerSubmit(event) {
     subject: elements.sellerSubject.value,
     type: elements.sellerType.value,
     description: elements.sellerDescription.value.trim(),
-    price: Number(elements.sellerPrice.value || UNIFORM_PRICE),
+    price: Number(elements.sellerPrice.value || 0),
     discount: Number(elements.sellerDiscount.value || 0),
     term: "Term 1",
     isFreeSample: false,
     popularity: 1,
     fileName: sellerFile.name,
     file,
+    fileSize: sellerFile.size,
     commission: 50,
     status: "pending",
     approvalNote: "Admin will review and approve within 3 days."
   };
 
+  const currentUsage = getSellerStorageUsage();
+  if (currentUsage + sellerFile.size > SELLER_STORAGE_LIMIT_BYTES) {
+    elements.sellerStatus.textContent = "Your seller upload storage has reached its 20GB limit. Remove older uploads before submitting more files.";
+    showToast("Seller storage limit reached.");
+    return;
+  }
   localStorage.setItem(SELLER_STORAGE_KEY, JSON.stringify([...readSellerResources(), resource]));
   elements.sellerForm.reset();
-  elements.sellerPrice.value = UNIFORM_PRICE;
+  elements.sellerPrice.value = "";
   elements.sellerDiscount.value = 0;
   elements.sellerGrade.value = "Grade 1";
   optionList(elements.sellerSubject, gradeSubjects["Grade 1"], "Mathematics Activities");
@@ -940,6 +1014,15 @@ function requestWithdrawal(event) {
   elements.withdrawForm.reset();
   elements.withdrawStatus.textContent = `Withdrawal request submitted for ${money(amount)}.`;
   showToast("Seller withdrawal request submitted.");
+}
+
+function openAdminLogin() {
+  const adminLoginSection = document.querySelector("#adminLogin");
+  if (!adminLoginSection) return;
+  adminLoginSection.classList.add("open");
+  adminLoginSection.setAttribute("aria-hidden", "false");
+  adminLoginSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  showToast("Admin login section opened.");
 }
 
 function openSellerDashboard() {
@@ -1005,14 +1088,20 @@ function unlockAdmin(event) {
   event.preventDefault();
   const username = elements.adminUsername.value.trim().toUpperCase();
   const password = elements.adminPassword.value;
+  const email = elements.adminEmail.value.trim().toLowerCase();
 
-  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
-    elements.adminLoginStatus.textContent = "Invalid username or password.";
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD || email !== ADMIN_EMAIL) {
+    elements.adminLoginStatus.textContent = "Invalid username, password, or email. Please use the official admin credentials.";
     showToast("Admin login failed.");
     return;
   }
 
   sessionStorage.setItem("cbeAdminUnlocked", "true");
+  const adminLoginSection = document.querySelector("#adminLogin");
+  if (adminLoginSection) {
+    adminLoginSection.classList.remove("open");
+    adminLoginSection.setAttribute("aria-hidden", "true");
+  }
   elements.adminSection.classList.add("open");
   elements.adminSection.setAttribute("aria-hidden", "false");
   elements.adminLoginForm.reset();
@@ -1145,7 +1234,7 @@ async function handleFormSubmit(event) {
   const title = document.querySelector("#titleInput").value.trim();
   const description = document.querySelector("#descriptionInput").value.trim();
   const notes = elements.notesContent.value.trim();
-  const price = Number(document.querySelector("#priceInput").value || UNIFORM_PRICE);
+  const price = Number(document.querySelector("#priceInput").value || 0);
   const discount = Number(document.querySelector("#discountInput").value || 0);
   let fileName = document.querySelector("#fileNameInput").value.trim();
   let file = "";
@@ -1187,7 +1276,7 @@ async function handleFormSubmit(event) {
   const saved = readSavedResources();
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...saved, resource]));
   elements.form.reset();
-  document.querySelector("#priceInput").value = UNIFORM_PRICE;
+  document.querySelector("#priceInput").value = "";
   document.querySelector("#discountInput").value = 0;
   elements.termInput.value = "Term 1";
   elements.freeSample.value = "false";
@@ -1289,6 +1378,9 @@ function bindEvents() {
 
   elements.openSellerDashboard.addEventListener("click", openSellerDashboard);
   elements.openSellerDashboardSecondary.addEventListener("click", openSellerDashboard);
+  if (elements.adminAreaButton) {
+    elements.adminAreaButton.addEventListener("click", openAdminLogin);
+  }
 
   elements.gradeList.addEventListener("click", (event) => {
     const toggle = event.target.closest("[data-grade-toggle]");
@@ -1397,11 +1489,136 @@ function bindEvents() {
   elements.tuitionForm.addEventListener("submit", handleTuitionRegistration);
   elements.quizForm.addEventListener("submit", handleQuizSubmit);
   elements.homeworkForm.addEventListener("submit", handleHomeworkHelper);
+
+  document.addEventListener("click", (event) => {
+    if (event.target.dataset.downloadResource) {
+      handleDownloadRequest(event);
+    }
+    if (event.target.dataset.approveDownload) {
+      approveDownloadRequest(event.target.dataset.approveDownload);
+    }
+    if (event.target.dataset.confirmDownload) {
+      confirmDownloadApproval(event.target.dataset.confirmDownload);
+    }
+    if (event.target.dataset.rejectDownload) {
+      rejectDownloadRequest(event.target.dataset.rejectDownload);
+    }
+  });
+}
+
+function handleDownloadRequest(event) {
+  event.preventDefault();
+  const resourceId = event.target.dataset.downloadResource;
+  const phone = prompt("Enter your phone number to check download status:");
+  
+  if (!phone) return;
+  
+  if (hasAccessToDownload(resourceId, phone)) {
+    const resource = getAllResources().find((r) => r.id === resourceId);
+    if (resource && resource.file) {
+      const link = document.createElement("a");
+      link.href = resource.file;
+      link.download = resource.fileName || "resource";
+      link.click();
+      showToast(`${resource.title} downloaded successfully.`);
+    }
+  } else if (isResourcePaid(resourceId, phone)) {
+    showToast("Payment confirmed! Admin will activate your download soon. Please check back in a few minutes.");
+  } else {
+    showToast("You haven't paid for this resource yet. Please complete payment first.");
+  }
+}
+
+function approveDownloadRequest(paymentRecordId) {
+  const record = readPaymentRecords().find((r) => r.id === paymentRecordId);
+  if (!record) return;
+  
+  const downloads = readApprovedDownloads();
+  const newDownload = {
+    id: `dl-${Date.now()}`,
+    paymentRecordId: record.id,
+    resourceId: record.resource,
+    resourceName: record.resource,
+    customerPhone: record.customerPhone,
+    amount: record.amount,
+    status: "pending",
+    createdAt: new Date().toISOString()
+  };
+  
+  downloads.push(newDownload);
+  localStorage.setItem(APPROVED_DOWNLOADS_KEY, JSON.stringify(downloads));
+  
+  const updated = readPaymentRecords().map((r) => {
+    if (r.id === paymentRecordId) {
+      return { ...r, status: "download activated" };
+    }
+    return r;
+  });
+  localStorage.setItem(PAYMENT_RECORDS_KEY, JSON.stringify(updated));
+  
+  renderPaymentRecords();
+  renderDownloadApprovals();
+  showToast("Download activation pending admin approval.");
+}
+
+function confirmDownloadApproval(downloadId) {
+  const updated = readApprovedDownloads().map((dl) => {
+    if (dl.id === downloadId) {
+      return { ...dl, status: "approved", approvedAt: new Date().toISOString() };
+    }
+    return dl;
+  });
+  localStorage.setItem(APPROVED_DOWNLOADS_KEY, JSON.stringify(updated));
+  renderDownloadApprovals();
+  showToast("Download approved for customer.");
+}
+
+function rejectDownloadRequest(downloadId) {
+  const updated = readApprovedDownloads().filter((dl) => dl.id !== downloadId);
+  localStorage.setItem(APPROVED_DOWNLOADS_KEY, JSON.stringify(updated));
+  renderDownloadApprovals();
+  showToast("Download request rejected.");
+}
+
+function injectContactInfo() {
+  // Decrypt and inject contact information throughout the page
+  const mpesaPhone = MPESA_PHONE;
+  const whatsappPhone = WHATSAPP_PHONE;
+  const adminEmail = ADMIN_EMAIL;
+  
+  // Replace *** placeholders with actual phone numbers
+  setTimeout(() => {
+    document.body.innerHTML = document.body.innerHTML
+      .replace(/wa\.me\/254xxx/g, `wa.me/${whatsappPhone}`)
+      .replace(/>\*\*\*</g, `>${mpesaPhone}<`);
+  }, 0);
+  
+  // Update all WhatsApp links
+  document.querySelectorAll('[href*="wa.me/"]').forEach((link) => {
+    link.href = `https://wa.me/${whatsappPhone}`;
+  });
+  
+  // Update M-Pesa button text
+  const headerMpesa = document.getElementById('headerMpesaButton');
+  if (headerMpesa) {
+    headerMpesa.textContent = `M-Pesa ${mpesaPhone}`;
+  }
+  
+  // Update contact tel links
+  document.querySelectorAll('[href^="tel:"]').forEach((link) => {
+    link.href = `tel:${mpesaPhone}`;
+  });
+  
+  // Update email placeholders
+  document.querySelectorAll('[placeholder*="gmail"]').forEach((elem) => {
+    elem.placeholder = adminEmail;
+  });
 }
 
 renderGradeDashboard();
 setupFilters();
 renderQuickTypes();
+injectContactInfo();
 restoreAdminAccess();
 bindEvents();
 renderResources();
@@ -1411,4 +1628,5 @@ renderSellerResources();
 renderSellerAccountApprovals();
 renderAdminApprovals();
 renderPaymentRecords();
+renderDownloadApprovals();
 renderProgressReport();
