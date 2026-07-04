@@ -9,6 +9,7 @@ const WITHDRAWAL_KEY = "cbeWithdrawalRequests";
 const PROJECTS_KEY = "cbeProjects";
 const TUITION_KEY = "cbeHolidayTuition";
 const QUIZ_PROGRESS_KEY = "cbeQuizProgress";
+const ASSESSMENT_KEY = "cbeAssessmentResponses";
 const MPESA_PHONE = "0798462815";
 const WHATSAPP_PHONE = "254798462815";
 const MPESA_ENDPOINT = "/api/mpesa/stk-push";
@@ -16,7 +17,8 @@ const API_ENDPOINTS = {
   projects: "/api/projects",
   tuition: "/api/tuition",
   quizzes: "/api/quizzes",
-  homework: "/api/homework-helper"
+  homework: "/api/homework-helper",
+  assessment: "/api/assessment-generator"
 };
 const ADMIN_USERNAME = "ISAAC";
 const ADMIN_PASSWORD = "mose23";
@@ -349,6 +351,14 @@ const elements = {
   homeworkSubject: document.querySelector("#homeworkSubjectInput"),
   homeworkQuestion: document.querySelector("#homeworkQuestionInput"),
   homeworkAnswer: document.querySelector("#homeworkAnswer"),
+  assessmentForm: document.querySelector("#assessmentForm"),
+  assessmentGrade: document.querySelector("#assessmentGradeInput"),
+  assessmentSubject: document.querySelector("#assessmentSubjectInput"),
+  assessmentTopics: document.querySelector("#assessmentTopicsInput"),
+  assessmentQuestions: document.querySelector("#assessmentQuestionsInput"),
+  assessmentOutput: document.querySelector("#assessmentOutput"),
+  assessmentStatus: document.querySelector("#assessmentStatus"),
+  projectGrade: document.querySelector("#projectGradeInput"),
   toast: document.querySelector("#toast")
 };
 
@@ -397,6 +407,14 @@ function readQuizProgress() {
 function readWithdrawalRequests() {
   try {
     return JSON.parse(localStorage.getItem(WITHDRAWAL_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function readAssessmentResponses() {
+  try {
+    return JSON.parse(localStorage.getItem(ASSESSMENT_KEY)) || [];
   } catch {
     return [];
   }
@@ -543,6 +561,7 @@ function setupFilters() {
   optionList(elements.projectGrade, grades, "Grade 1");
   optionList(elements.tuitionGrade, grades, "Grade 1");
   optionList(elements.homeworkGrade, grades, "Grade 1");
+  optionList(elements.assessmentGrade, grades, "Grade 1");
   optionList(elements.typeFilter, ["All Materials", ...materialTypes], state.type);
   optionList(elements.adminType, materialTypes, "Notes");
   optionList(elements.sellerType, materialTypes, "Notes");
@@ -606,8 +625,8 @@ function renderResources() {
         <button class="secondary-button" type="button" data-cart="${escapeHtml(resource.id)}">Add to Cart</button>
         <a class="whatsapp-button" href="${escapeHtml(whatsappLink(resource, discountedPrice(resource)))}" target="_blank" rel="noopener">WhatsApp</a>
         ${resource.isFreeSample ? `<a class="secondary-button" href="${escapeHtml(resource.file)}" download="${escapeHtml(resource.fileName || "")}">Preview Sample</a>` : ""}
-        ${localStorage.getItem(REFERRAL_KEY) ? `<a class="secondary-button" href="${escapeHtml(resource.file)}" download="${escapeHtml(resource.fileName || "")}" data-free-resource="${escapeHtml(resource.id)}">Free Referral Paper</a>` : ""}
-        <a class="download-button" href="${escapeHtml(paidResourceHelpLink(resource, discountedPrice(resource)))}" target="_blank" rel="noopener" data-download="${escapeHtml(resource.id)}">Get CBE Resource</a>
+        ${localStorage.getItem(REFERRAL_KEY) ? `<a class="secondary-button" href="${escapeHtml(resource.file)}" download="${escapeHtml(resource.fileName || "")}" data-free-resource="${escapeHtml(resource.id)}">Download Free</a>` : ""}
+        <a class="download-button" href="${escapeHtml(paidResourceHelpLink(resource, discountedPrice(resource)))}" target="_blank" rel="noopener" data-download="${escapeHtml(resource.id)}">Get CBE Help</a>
       </div>
     </article>
   `).join("");
@@ -861,18 +880,325 @@ async function handleQuizSubmit(event) {
 
 async function handleHomeworkHelper(event) {
   event.preventDefault();
+  
+  const grade = elements.homeworkGrade.value;
+  const subject = elements.homeworkSubject.value.trim();
+  const question = elements.homeworkQuestion.value.trim();
+  
+  // Validate inputs
+  if (!grade || !subject || !question) {
+    showToast("Please fill in all fields: Grade, Subject, and Question.");
+    return;
+  }
+  
   const payload = {
-    grade: elements.homeworkGrade.value,
-    subject: elements.homeworkSubject.value.trim(),
-    question: elements.homeworkQuestion.value.trim()
+    grade,
+    subject,
+    question
   };
-  elements.homeworkAnswer.textContent = "Preparing a guided homework response...";
+  
+  // Show loading state
+  elements.homeworkAnswer.textContent = "🔄 Preparing a guided homework response...";
+  elements.homeworkAnswer.style.display = "block";
+  
+  // Try backend first
   const backend = await postToBackend(API_ENDPOINTS.homework, payload);
-  const answer = backend && backend.answer
-    ? backend.answer
-    : `Guided help for ${payload.grade} ${payload.subject}: Start by identifying what the question is asking, list the known facts, solve one step at a time, then check whether your answer fits the question. For this question, write the key idea in your own words first: "${payload.question}"`;
-  elements.homeworkAnswer.innerHTML = `<strong>AI Homework Helper</strong><p>${escapeHtml(answer)}</p>`;
-  showToast("Homework helper response ready.");
+  
+  // Prepare the response
+  let answer;
+  if (backend && backend.answer) {
+    answer = backend.answer;
+  } else {
+    // Fallback: Generate a helpful guided response
+    answer = generateGuidedHelp(grade, subject, question);
+  }
+  
+  // Save the response
+  const response = {
+    id: `homework-${Date.now()}`,
+    grade,
+    subject,
+    question,
+    answer,
+    createdAt: new Date().toISOString()
+  };
+  saveLocalList("homeworkResponses", response);
+  
+  // Display the answer with HTML formatting
+  elements.homeworkAnswer.innerHTML = `
+    <div class="ai-response">
+      <strong>📚 AI Homework Helper</strong>
+      <p>${escapeHtml(answer)}</p>
+      <p style="font-size: 0.9em; color: #666; margin-top: 1em;">
+        <em>💡 Tip: Start by identifying what the question asks, list the known facts, solve step by step, then check if your answer makes sense.</em>
+      </p>
+    </div>
+  `;
+  
+  showToast("✅ Homework helper response ready.");
+}
+
+function generateGuidedHelp(grade, subject, question) {
+  // Generate contextual guidance based on grade and subject
+  const gradeLevel = parseInt(grade.replace("Grade ", ""));
+  
+  let guidedSteps = `For ${grade} ${subject}:\n\n`;
+  guidedSteps += `Step 1: Read the question carefully\n`;
+  guidedSteps += `"${question.substring(0, 100)}${question.length > 100 ? "..." : ""}"\n\n`;
+  guidedSteps += `Step 2: Identify what is being asked\n`;
+  
+  if (gradeLevel <= 3) {
+    guidedSteps += `- Look for key words in the question\n`;
+    guidedSteps += `- Think about what you've learned in class\n\n`;
+  } else if (gradeLevel <= 6) {
+    guidedSteps += `- What topic is this about?\n`;
+    guidedSteps += `- What concept does it test?\n`;
+    guidedSteps += `- Do you need to calculate, explain, or compare?\n\n`;
+  } else {
+    guidedSteps += `- Is this asking for analysis, evaluation, or application?\n`;
+    guidedSteps += `- What prior knowledge do you need?\n`;
+    guidedSteps += `- Are there multiple parts to this question?\n\n`;
+  }
+  
+  guidedSteps += `Step 3: Plan your answer\n`;
+  guidedSteps += `- Write down the main points you want to cover\n`;
+  guidedSteps += `- Organize them in a logical order\n\n`;
+  
+  guidedSteps += `Step 4: Write your complete answer\n`;
+  guidedSteps += `- Use what you learned in class\n`;
+  guidedSteps += `- Explain your thinking clearly\n\n`;
+  
+  guidedSteps += `Step 5: Review your answer\n`;
+  guidedSteps += `- Does it answer the question?\n`;
+  guidedSteps += `- Is it clear and complete?\n`;
+  guidedSteps += `- Have you checked for errors?\n\n`;
+  
+  guidedSteps += `Need more help? Ask your teacher or parent, or check your textbook for similar examples.`;
+  
+  return guidedSteps;
+}
+
+async function handleAssessmentGeneration(event) {
+  event.preventDefault();
+  
+  const grade = elements.assessmentGrade.value;
+  const subject = elements.assessmentSubject.value.trim();
+  const topics = elements.assessmentTopics.value.trim();
+  const questionCount = Number(elements.assessmentQuestions.value) || 5;
+  
+  // Validate inputs
+  if (!grade || !subject || !topics || questionCount < 1 || questionCount > 50) {
+    showToast("Please fill in all fields. Questions must be between 1 and 50.");
+    return;
+  }
+  
+  const payload = {
+    grade,
+    subject,
+    topics,
+    questionCount
+  };
+  
+  // Show loading state
+  elements.assessmentOutput.innerHTML = "🔄 Generating AI assessment questions...";
+  elements.assessmentStatus.textContent = "Processing...";
+  
+  // Try backend first
+  const backend = await postToBackend(API_ENDPOINTS.assessment, payload);
+  
+  // Prepare the assessment
+  let assessment;
+  if (backend && backend.assessment) {
+    assessment = backend.assessment;
+  } else {
+    // Fallback: Generate assessment locally
+    assessment = generateAssessment(grade, subject, topics, questionCount);
+  }
+  
+  // Save the assessment
+  const record = {
+    id: `assessment-${Date.now()}`,
+    grade,
+    subject,
+    topics,
+    questionCount,
+    assessment,
+    createdAt: new Date().toISOString()
+  };
+  saveLocalList(ASSESSMENT_KEY, record);
+  
+  // Display the assessment
+  displayAssessment(assessment, grade, subject);
+  
+  elements.assessmentStatus.textContent = `✅ Assessment for ${grade} ${subject} generated successfully.`;
+  showToast("✅ Assessment questions generated!");
+}
+
+function generateAssessment(grade, subject, topics, questionCount) {
+  const gradeLevel = parseInt(grade.replace("Grade ", ""));
+  const topicsList = topics.split(",").map(t => t.trim()).filter(t => t);
+  
+  let questions = [];
+  const questionTypes = gradeLevel <= 3 
+    ? ["Multiple Choice", "True/False", "Fill in the Blank"]
+    : gradeLevel <= 6
+    ? ["Multiple Choice", "Short Answer", "True/False", "Matching"]
+    : ["Multiple Choice", "Short Answer", "Essay", "Problem Solving", "Analysis"];
+  
+  for (let i = 1; i <= questionCount; i++) {
+    const topic = topicsList[i % topicsList.length];
+    const type = questionTypes[i % questionTypes.length];
+    
+    questions.push({
+      number: i,
+      type,
+      topic,
+      question: generateQuestion(gradeLevel, subject, topic, type, i),
+      marks: gradeLevel <= 3 ? 1 : gradeLevel <= 6 ? 2 : 3
+    });
+  }
+  
+  return {
+    title: `${grade} ${subject} - Assessment for ${topicsList.join(", ")}`,
+    grade,
+    subject,
+    topics: topicsList,
+    totalMarks: questions.reduce((sum, q) => sum + q.marks, 0),
+    timeLimit: `${Math.ceil(questionCount * 1.5)} minutes`,
+    instructions: getAssessmentInstructions(gradeLevel),
+    questions
+  };
+}
+
+function generateQuestion(gradeLevel, subject, topic, type, questionNumber) {
+  const subjectLower = subject.toLowerCase();
+  
+  if (type === "Multiple Choice") {
+    return `${questionNumber}. Which of the following best describes ${topic} in ${subject}? (1 mark)\n
+    a) Description of option 1\n
+    b) Description of option 2\n
+    c) Correct description of ${topic}\n
+    d) Description of option 4`;
+  } else if (type === "True/False") {
+    return `${questionNumber}. True or False: ${topic} is an important concept in ${subject}. (1 mark)`;
+  } else if (type === "Fill in the Blank") {
+    return `${questionNumber}. __________ is a key aspect of ${topic} in ${subject}. (1 mark)`;
+  } else if (type === "Short Answer") {
+    return `${questionNumber}. Explain what ${topic} means in the context of ${subject}. (${gradeLevel <= 6 ? 2 : 3} marks)`;
+  } else if (type === "Essay") {
+    return `${questionNumber}. Discuss the importance of ${topic} in ${subject} and how it applies to real-world situations. (5 marks)`;
+  } else if (type === "Problem Solving") {
+    return `${questionNumber}. Solve the following problem related to ${topic} in ${subject}:\n
+    [Sample problem based on ${topic}]\n
+    Show your working. (4 marks)`;
+  } else if (type === "Analysis") {
+    return `${questionNumber}. Analyze how ${topic} impacts ${subject} and explain your reasoning with examples. (5 marks)`;
+  } else if (type === "Matching") {
+    return `${questionNumber}. Match the following terms related to ${topic}:\n
+    Column A                          Column B\n
+    a) Term 1                         i) Definition 1\n
+    b) Term 2                         ii) Definition 2\n
+    c) Term 3                         iii) Definition 3`;
+  }
+  
+  return `${questionNumber}. ${type} question about ${topic}`;
+}
+
+function getAssessmentInstructions(gradeLevel) {
+  let instructions = `ASSESSMENT INSTRUCTIONS\n\n`;
+  
+  if (gradeLevel <= 3) {
+    instructions += `1. Read each question carefully\n`;
+    instructions += `2. Answer all questions to the best of your ability\n`;
+    instructions += `3. Use clear writing or mark your answers clearly\n`;
+    instructions += `4. Ask for help if you don't understand a question\n`;
+  } else if (gradeLevel <= 6) {
+    instructions += `1. Read all questions before you start\n`;
+    instructions += `2. Answer all questions\n`;
+    instructions += `3. Show your working for calculation questions\n`;
+    instructions += `4. Check your work before submitting\n`;
+    instructions += `5. Answer in complete sentences where required\n`;
+  } else {
+    instructions += `1. Read all instructions carefully before beginning\n`;
+    instructions += `2. Answer all questions in the space provided\n`;
+    instructions += `3. For essay questions, organize your thoughts with an introduction, body, and conclusion\n`;
+    instructions += `4. Support your answers with relevant examples and evidence\n`;
+    instructions += `5. Show all working for problem-solving questions\n`;
+    instructions += `6. Proofread your work for spelling and grammar errors\n`;
+    instructions += `7. Manage your time effectively\n`;
+  }
+  
+  return instructions;
+}
+
+function displayAssessment(assessment, grade, subject) {
+  let html = `
+    <div class="assessment-display">
+      <h3>${escapeHtml(assessment.title)}</h3>
+      <div class="assessment-meta">
+        <p><strong>Total Marks:</strong> ${assessment.totalMarks}</p>
+        <p><strong>Time Limit:</strong> ${escapeHtml(assessment.timeLimit)}</p>
+      </div>
+      
+      <div class="assessment-instructions">
+        <h4>Instructions:</h4>
+        <pre>${escapeHtml(assessment.instructions)}</pre>
+      </div>
+      
+      <div class="assessment-questions">
+        <h4>Questions:</h4>
+  `;
+  
+  assessment.questions.forEach((q, idx) => {
+    html += `
+      <div class="question-block" style="margin: 1.5em 0; padding: 1em; border-left: 4px solid #0066cc;">
+        <p><strong>${q.number}. [${q.type}] ${escapeHtml(q.topic)}</strong></p>
+        <pre style="background: #f5f5f5; padding: 0.5em; white-space: pre-wrap;">${escapeHtml(q.question)}</pre>
+        <p style="color: #666; font-size: 0.9em;">Marks: ${q.marks}</p>
+      </div>
+    `;
+  });
+  
+  html += `
+      </div>
+      
+      <div class="assessment-actions" style="margin-top: 2em; padding-top: 2em; border-top: 2px solid #ddd;">
+        <button class="primary-button" type="button" onclick="printAssessment()">🖨️ Print Assessment</button>
+        <button class="secondary-button" type="button" onclick="downloadAssessmentPDF()">📥 Download as PDF</button>
+      </div>
+    </div>
+  `;
+  
+  elements.assessmentOutput.innerHTML = html;
+}
+
+function printAssessment() {
+  window.print();
+  showToast("Assessment sent to printer.");
+}
+
+function downloadAssessmentPDF() {
+  const assessmentHTML = elements.assessmentOutput.innerHTML;
+  const printWindow = window.open("", "", "width=900,height=600");
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Assessment</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .assessment-display { max-width: 800px; }
+          .question-block { margin: 1.5em 0; padding: 1em; border-left: 4px solid #0066cc; }
+          pre { background: #f5f5f5; padding: 0.5em; white-space: pre-wrap; font-family: Arial; }
+        </style>
+      </head>
+      <body>
+        ${assessmentHTML}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  setTimeout(() => printWindow.print(), 250);
+  showToast("Assessment ready for download via print dialog.");
 }
 
 async function handleSellerSubmit(event) {
@@ -1374,6 +1700,16 @@ function bindEvents() {
     optionList(elements.sellerSubject, subjects, subjects[0]);
   });
 
+  elements.homeworkGrade.addEventListener("change", (event) => {
+    const subjects = gradeSubjects[event.target.value];
+    optionList(elements.homeworkSubject, subjects, subjects[0]);
+  });
+
+  elements.assessmentGrade.addEventListener("change", (event) => {
+    const subjects = gradeSubjects[event.target.value];
+    optionList(elements.assessmentSubject, subjects, subjects[0]);
+  });
+
   elements.fileInput.addEventListener("change", () => {
     const file = elements.fileInput.files[0];
     if (!file) {
@@ -1397,6 +1733,9 @@ function bindEvents() {
   elements.tuitionForm.addEventListener("submit", handleTuitionRegistration);
   elements.quizForm.addEventListener("submit", handleQuizSubmit);
   elements.homeworkForm.addEventListener("submit", handleHomeworkHelper);
+  if (elements.assessmentForm) {
+    elements.assessmentForm.addEventListener("submit", handleAssessmentGeneration);
+  }
 }
 
 renderGradeDashboard();
